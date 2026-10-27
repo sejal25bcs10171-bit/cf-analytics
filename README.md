@@ -1,181 +1,250 @@
 # CF Analytics — Codeforces Weak Topic Finder
 
-## Problem Statement
+A full-stack web application that analyzes a Codeforces user's submission history to identify weak problem-solving topics and recommend targeted practice problems.
 
-Competitive programmers improve fastest by targeting their weakest topics, but Codeforces gives no built-in view of which problem tags they struggle with. CF Analytics fills that gap.
+## 🔗 Live Links
 
-## Target Users
+- **Live Application:** https://cf-analytics-umber.vercel.app
+- **Backend API:** https://cf-analytics-yde2.onrender.com
+- **GitHub Repository:** https://github.com/sejal25bcs10171-bit/cf-analytics
 
-Codeforces users (beginner → intermediate) who want data-driven practice instead of random problem-picking.
+## 1. Problem Statement
 
-## Solution
+Competitive programmers improve faster by focusing on their weakest topics. However, Codeforces does not directly provide a personalized overview of a user's topic-wise solving performance.
 
-Enter your Codeforces handle (case-insensitive). The app fetches your full submission history and rating history from the public Codeforces API, computes a **solve rate per tag**, and surfaces:
+CF Analytics addresses this problem by analyzing submission history, calculating tag-wise solve rates, visualizing performance, and recommending relevant unsolved problems.
 
-- An interactive **rating history** line chart
-- A **tag bar chart** with the 3 weakest tags (and any tag under 50% solve rate) highlighted in red
-- **5 unsolved problems** near your current rating from your weakest tag
+## 2. Target Users
 
-Results are cached in MongoDB for 1 hour, so repeated queries are instant.
+Beginner and intermediate Codeforces users who want to improve their competitive programming skills through data-driven, targeted practice rather than random problem selection.
 
-> **Note:** The `*special` tag is excluded from analytics — it is not a real topic category.
-> Handles are normalised to lowercase, so "Tourist" and "tourist" share the same cached result.
+## 3. Key Features
 
----
+- **Codeforces Profile Analysis:** Enter a Codeforces handle to analyze submission and contest rating history.
+- **Rating History Visualization:** Interactive line chart displaying contest rating changes.
+- **Tag-wise Performance Analytics:** Visualizes solved versus attempted problems for different tags.
+- **Weak Topic Detection:** Highlights the weakest eligible tags using their solve rates.
+- **Personalized Practice Suggestions:** Recommends unsolved problems near the user's current rating, prioritizing weak topics.
+- **Progress Tracking:** Provides a Check Progress workflow to revisit performance information.
+- **New Practice Set:** Provides a workflow to generate another set of practice suggestions.
+- **MongoDB Caching:** Stores analysis results to reduce repeated Codeforces API requests.
+- **Error Handling:** Handles invalid handles, unavailable API responses, and missing analysis data.
 
-## Key Features
+## 4. How It Works
 
-| Feature              | Details                                                                    |
-| -------------------- | -------------------------------------------------------------------------- |
-| Rating history chart | Line chart of every contest rating change                                  |
-| Tag analytics chart  | Solved vs Attempted per tag; 3 weakest tags (and <50%) highlighted in red  |
-| Practice suggestions | 5 unsolved problems near your current rating from your weakest tag         |
-| 1-hour MongoDB cache | Avoids hammering the Codeforces API                                        |
-| Error handling       | Bad handle, API down, no data — all caught                                 |
+1. The user enters a Codeforces handle.
+2. The frontend sends a request to the Express backend.
+3. The backend normalizes the handle and checks MongoDB for a cached analysis.
+4. If a fresh cached result is unavailable, the backend fetches submission and contest rating data from the Codeforces public API.
+5. The application calculates attempted problems, successful solves, and solve rates for each tag.
+6. Tags with fewer than three attempts are excluded to reduce misleading results, and the `special` tag is excluded from topic analytics.
+7. The weakest eligible tags are identified and used to prioritize unsolved practice problems.
+8. The analysis is returned to the frontend, visualized in charts, and cached in MongoDB.
 
----
+## 5. Tech Stack
 
-## Tech Stack
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite |
+| Charts | Recharts |
+| HTTP Requests | Axios |
+| Backend | Node.js, Express |
+| Database | MongoDB Atlas, Mongoose |
+| External Data | Codeforces Public REST API |
+| Styling | Custom CSS |
+| Frontend Deployment | Vercel |
+| Backend Deployment | Render |
 
-| Layer    | Technology                       |
-| -------- | -------------------------------- |
-| Frontend | React 18 + Vite, Recharts, Axios |
-| Backend  | Node.js, Express 4               |
-| Database | MongoDB Atlas (Mongoose)         |
-| Data     | Codeforces public REST API       |
-| Styling  | Plain CSS (custom dark theme)    |
+## 6. Architecture
 
----
-
-## Architecture
-
+```text
+User
+  |
+  v
+React + Vite Frontend
+  |
+  | GET /api/analyze/:handle
+  v
+Node.js + Express Backend
+  |
+  +--> Normalize Codeforces handle
+  |
+  +--> Check MongoDB cache
+  |       |
+  |       +--> Return cached analysis if fresh
+  |
+  +--> Fetch submission and rating history
+  |       from Codeforces API
+  |
+  +--> Calculate tag-wise statistics
+  |
+  +--> Identify weak topics
+  |
+  +--> Generate practice suggestions
+  |
+  +--> Store analysis in MongoDB
+  |
+  v
+Return JSON response to frontend
+  |
+  v
+Charts, Recommendations and Practice Workflow
 ```
-Browser (React + Recharts)
-        │  GET /api/analyze/:handle
-        ▼
-Express Server (Node)
-  ├── Normalise handle (lowercase, URL-encode)
-  ├── Check MongoDB cache (< 1 hr old) → return cached result
-  ├── Fetch user.status  ─┐  parallel via Promise.all
-  ├── Fetch user.rating  ─┘
-  ├── Compute tag stats (attempted / solved / ratio), skip *special
-  ├── Filter tags with < 3 attempts (noise guard)
-  ├── Sort by ratio ascending (weakest first)
-  ├── Fetch 5 unsolved problems near the user's rating for the weakest tag
-  ├── Upsert result in MongoDB
-  └── Return JSON to client
-        │
-        ▼
-MongoDB Atlas — `analyses` collection
-```
 
----
-
-## Local Setup
+## 7. Local Setup
 
 ### Prerequisites
 
-- Node.js ≥ 18
-- A free [MongoDB Atlas](https://cloud.mongodb.com) cluster
+- Node.js 18 or later
+- npm
+- A MongoDB Atlas cluster and connection string
 
-### 1. Clone & install
+### Step 1: Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/sejal25bcs10171-bit/cf-analytics.git
 cd cf-analytics
-npm run install:all   # installs both server and client deps
+npm run install:all
 ```
 
-### 2. Configure environment
+### Step 2: Configure Environment Variables
+
+Create the backend environment file using the provided example:
 
 ```bash
 cp server/.env.example server/.env
-# edit server/.env and paste your MongoDB Atlas connection string
 ```
 
-### 3. Run
+Configure the following variables in `server/.env`:
 
-Open two terminals:
+```env
+MONGO_URI=your_mongodb_atlas_connection_string
+PORT=5000
+```
+
+Use the port expected by your server configuration if it differs from the example.
+
+If needed, configure `client/.env` with:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+The frontend's API URL must match the backend address and port.
+
+### Step 3: Start the Application
+
+Open two terminals.
+
+**Terminal 1 — Backend**
 
 ```bash
-# Terminal 1 — backend
-cd server && npm run dev
-
-# Terminal 2 — frontend
-cd client && npm run dev
+cd server
+npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+**Terminal 2 — Frontend**
 
----
+```bash
+cd client
+npm run dev
+```
 
-## Environment Variables
+Open the local frontend URL shown by Vite, usually http://localhost:5173.
 
-### Backend (`server/.env`)
+## 8. Environment Variables
 
-| Variable    | Description                     |
-| ----------- | ------------------------------- |
+### Backend
+
+| Variable | Purpose |
+|---|---|
 | `MONGO_URI` | MongoDB Atlas connection string |
-| `PORT`      | Express port (default `5000`)   |
+| `PORT` | Port used by the Express server |
 
-> ⚠️ Never commit `server/.env`. It is in `.gitignore`.
+### Frontend
 
-### Frontend (`client/.env` — optional)
+| Variable | Purpose |
+|---|---|
+| `VITE_API_URL` | Base URL of the backend API |
 
-| Variable       | Description                                                                 |
-| -------------- | --------------------------------------------------------------------------- |
-| `VITE_API_URL` | Base URL of the backend when hosted on a different domain. Leave empty locally. |
+Never commit environment files containing secrets or database credentials. Keep `.env` files excluded through `.gitignore`.
 
----
+## 9. Deployment
 
-## Deployment
+### Frontend — Vercel
 
-- **Backend**: Deploy `server/` to [Render](https://render.com) (free tier). Set `MONGO_URI` and `PORT` as environment variables in the Render dashboard.
-- **Frontend**: On [Vercel](https://vercel.com), set the environment variable `VITE_API_URL` to your Render backend URL (e.g. `https://cf-analytics-api.onrender.com`). Vercel uses this at build time. No proxy changes needed.
+The frontend is deployed on Vercel.
 
----
+- Live URL: https://cf-analytics-umber.vercel.app
+- Root directory: `client`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `VITE_API_URL=https://cf-analytics-yde2.onrender.com`
 
-## Limitations and Future Work
+### Backend — Render
 
-**Current limitations:**
+The backend is deployed on Render.
 
-- **Solve rate is a simple proxy.** It does not account for problem difficulty or how many wrong attempts were made before a correct submission — a tag with many easy solves looks equally "strong" as one with hard solves.
-- **Tags with few attempts are noisy.** A tag attempted only once or twice gives an unreliable ratio, which is why a minimum of 3 attempts is required before a tag appears in analytics.
-- **Suggestion range widens automatically.** When a tag has very few unsolved problems near your rating, the rating window broadens — so occasionally a suggestion may be slightly outside your comfort zone.
+- Base URL: https://cf-analytics-yde2.onrender.com
+- Configure `MONGO_URI` through the Render environment settings.
+- Configure any required server port according to the deployment environment.
 
-**Future ideas:**
+### Database — MongoDB Atlas
 
-- Weight tag weakness by problem rating (penalise failing hard problems more than easy ones).
-- Add a LeetCode view using the LeetCode GraphQL API.
-- Compare your tag stats against other users or against a target rating bracket.
+MongoDB Atlas stores cached analysis results to reduce unnecessary external API calls.
 
----
+## 10. Limitations and Future Improvements
 
-## API Reference
+### Current Limitations
 
-### `GET /api/analyze/:handle`
+- **Solve rate is an approximation:** It does not fully account for problem difficulty or the sequence of incorrect submissions before a successful solve.
+- **Small sample sizes can be misleading:** Tags with fewer than three attempts are excluded from analytics.
+- **Practice suggestions depend on available problems:** The number and difficulty of suitable suggestions depend on the available Codeforces problem data.
+- **External API dependency:** Analysis may be affected by Codeforces API availability and backend response times.
 
-Returns analytics for a given Codeforces handle (case-insensitive).
+### Future Improvements
 
-**Response (200)**
+- Incorporate problem difficulty into weakness calculations.
+- Add historical comparisons to show improvement in individual tags.
+- Compare performance with users in similar rating brackets.
+- Introduce additional competitive programming platforms where supported APIs are available.
+- Improve practice recommendations using learning history and previously completed suggestions.
+
+## 11. API Reference
+
+### Analyze a Codeforces Handle
+
+`GET /api/analyze/:handle`
+
+Returns analysis data for the supplied Codeforces handle.
+
+Example request:
+
+```http
+GET https://cf-analytics-yde2.onrender.com/api/analyze/tourist
+```
+
+A successful response contains analysis information such as the handle, cache status, rating history, tag statistics, and practice suggestions, according to the backend response structure.
+
+### Error Responses
+
+The API returns an error response when a request cannot be processed. For example:
 
 ```json
 {
-  "handle": "tourist",
-  "cached": false,
-  "fetchedAt": "2026-10-27T...",
-  "ratingHistory": [ { "contestId": 1, "newRating": 1500, "ratingUpdateTimeSeconds": 1700000000 } ],
-  "tagStats": [
-    { "tag": "graphs", "attempted": 10, "solved": 3, "ratio": 0.3 }
-  ],
-  "suggestions": [
-    { "name": "Problem A", "rating": 1200, "url": "https://codeforces.com/problemset/problem/123/A" }
-  ]
+  "error": "Human-readable error message"
 }
 ```
 
-**Error (400)**
+The exact HTTP status and error message depend on the failure.
 
-```json
-{ "error": "Human-readable message" }
-```
+## 12. Project Outcomes
+
+CF Analytics demonstrates the integration of a React frontend, a REST API backend, external API data retrieval, analytical logic, database caching, interactive data visualization, and cloud deployment.
+
+The project turns raw competitive programming activity into actionable insights that help users decide what to practice next.
+
+---
+
+**Developer:** Sejal Pednekar  
+**Project:** CF Analytics — Codeforces Weak Topic Finder
