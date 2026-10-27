@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# env — real secrets, never commit these
+server/.env
+client/.env
+client/.env.local
+client/.env.production
+
+# keep examples
+!server/.env.example
+!client/.env.example
+
+# build output
+client/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
